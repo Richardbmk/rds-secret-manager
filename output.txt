@@ -1,0 +1,3 @@
+jared_user_id = "AKIAZ3JOYZXEGOZWRAV5"
+jared_user_secret = <sensitive>
+password = "bMq^WW(V{|ws1-h#AcR6"
