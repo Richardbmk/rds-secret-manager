@@ -1,4 +1,5 @@
 data "aws_availability_zones" "available" {}
+data "aws_caller_identity" "current" {}
 
 locals {
   name   = "db-example"
@@ -28,6 +29,26 @@ data "aws_ami" "amazon-linux-2" {
    name   = "name"
    values = ["amzn2-ami-hvm*"]
  }
+}
+
+data "aws_iam_policy_document" "get-secret" {
+  statement {
+    sid = "AllowGetSecret"
+
+    actions = [
+      "secretsmanager:GetSecretValue",
+    ]
+
+    resources = [
+      "arn:aws:secretsmanager:*:${data.aws_caller_identity.current.account_id}:secret:rds*",
+    ]
+  }
+}
+
+resource "aws_iam_policy" "get-secret" {
+  name   = "example_policy"
+  path   = "/"
+  policy = data.aws_iam_policy_document.get-secret.json
 }
 
 ################################################################################
@@ -129,6 +150,11 @@ resource "aws_iam_role_policy_attachment" "dev-resources-ssm-policy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
+resource "aws_iam_role_policy_attachment" "dev-resources-secret-policy" {
+  role       = aws_iam_role.dev-resources-iam-role.name
+  policy_arn = aws_iam_policy.get-secret.arn
+}
+
 resource "aws_iam_instance_profile" "dev-resources-iam-profile" {
   name = "ec2_profile"
   role = aws_iam_role.dev-resources-iam-role.name
@@ -154,6 +180,7 @@ resource "aws_instance" "private_bastion_host" {
 
 resource "aws_db_instance" "default" {
   allocated_storage    = 10
+  identifier           = "the-db-test"
   db_name              = "mydb"
   engine               = "mysql"
   engine_version       = "8.0"
